@@ -14,3 +14,4 @@ Weights are stored in the binary as bfloat16, and unpacked to float32 at runtime
 
 The bundled tensor math lib uses compile-time shapes and in-place storage, so there is no dynamic memory allocation at all.
 
+Headers are installed with python packge, can be found with `python -m torch2cpp.includes`

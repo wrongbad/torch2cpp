@@ -18,9 +18,15 @@ int main(int argc, char ** argv)
     while(true)
     {
         std::getline(std::cin, prompt);
-        prompt += "\n";
+        // prompt += "\n";
 
         int n_tok = model_encode(prompt.c_str(), prompt.size(), toks, max_tokens);
+
+        std::cout << n_tok << std::endl;
+        for(int i=0 ; i<n_tok ; i++)
+            std::cout << toks[i] << ", ";
+        std::cout << std::endl;
+
         for(int i=0 ; i<n_tok-1 ; i++)
         {
             model_step(toks[i], 0);

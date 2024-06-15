@@ -144,7 +144,7 @@ def codegen(
         out_file,
         args=[],
         kwargs={},
-        tokenizer=None,
+        tokens=None,
         autowrap_functions=[],
         c_prefix='model',
         skip_weights=False,
@@ -159,10 +159,9 @@ def codegen(
     out = interp.run(*args, **kwargs)
 
 
-    if tokenizer is not None:
-        n_vocab = tokenizer.get_vocab_size()
-        vocab = tokenizer.decode_batch([[i] for i in range(n_vocab)])
-        vocab = [bytes(t, 'utf8') for t in vocab]
+    if tokens is not None:
+        n_vocab = len(tokens)
+        vocab = tokens
         token_pack = [struct.pack('B',len(t))+t for t in vocab]
         token_pack = [hex(c) for tok in token_pack for c in tok]
         token_pack = ','.join(token_pack)
@@ -217,7 +216,7 @@ def codegen(
     w = Writer(out_file)
 
     w('#include "torch2cpp/tensor.h"')
-    if tokenizer is not None:
+    if tokens is not None:
         w('#include "torch2cpp/tokenizer.h"')
     w('\n')
 
@@ -229,7 +228,7 @@ def codegen(
             w(','.join([hex(x) for x in blob]))
         w(';')
 
-        if tokenizer is not None:
+        if tokens is not None:
             w(f'uint8_t const g_token_pack[] = {{ {token_pack} }};')
     
     w('// weight tensors')
@@ -268,7 +267,7 @@ def codegen(
     w(f'ml::rng64 g_rng;')
     w(f'{class_name} g_model;')
 
-    if tokenizer is not None:
+    if tokens is not None:
         w(f'Tokenizer<{n_vocab}, {n_trees}> g_tokenizer = {{ g_token_pack }};')
     w('\n')
     w('} // namespace\n')
@@ -290,7 +289,7 @@ int {c_prefix}_step(int prevtok, float temperature)
 }}
 ''')
 
-    if tokenizer is not None:
+    if tokens is not None:
         w(f'''
 int {c_prefix}_encode(char const* str, int str_len, int * out, int out_len)
 {{
@@ -299,6 +298,23 @@ int {c_prefix}_encode(char const* str, int str_len, int * out, int out_len)
 int {c_prefix}_decode(int const* toks, int toks_len, char * out, int out_len)
 {{
     return g_tokenizer.decode(toks, toks_len, out, out_len);
+}}
+''')
+    else:
+        w(f'''
+int {c_prefix}_encode(char const* str, int str_len, int * out, int out_len)
+{{
+    int i = 0;
+    for(; i<str_len && i<out_len ; i++)
+        out[i] = uint8_t(str[i]);
+    return i;
+}}
+int {c_prefix}_decode(int const* toks, int toks_len, char * out, int out_len)
+{{
+    int i = 0;
+    for(; i<toks_len && i<out_len ; i++)
+        out[i] = uint8_t(toks[i]);
+    return i;
 }}
 ''')
 

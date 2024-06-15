@@ -1,7 +1,5 @@
 #include <cstdint>
 
-#include <iostream>
-
 template<int NTOK, int NTREE>
 struct Tokenizer
 {
